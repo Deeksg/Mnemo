@@ -216,3 +216,11 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Mnemo specific
+.env
+data/raw/
+__pycache__/
+*.pyc
+.weaviate/
+notebooks/.ipynb_checkpoints/

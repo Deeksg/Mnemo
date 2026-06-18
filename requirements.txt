@@ -1,0 +1,13 @@
+# ─── Agent Framework ───────────────────────────────────────
+langgraph==0.2.28
+langchain==0.3.7
+langchain-core==0.3.15
+
+# ─── Environment & Utilities ───────────────────────────────
+python-dotenv==1.0.1
+pydantic==2.9.2
+
+# ─── Data & Datasets ───────────────────────────────────────
+datasets==3.1.0
+huggingface-hub==0.26.2
+pandas==2.2.3
