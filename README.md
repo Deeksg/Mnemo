@@ -1,6 +1,6 @@
 # Mnemo 🧠
 
-> Reputation-ranked persistent memory middleware for multi-agent LLM systems
+> Reputation-ranked task assignment and cross-session persistent memory for multi-agent LLM systems
 
 Mnemo is an open-source middleware layer that brings two critical missing primitives to multi-agent AI systems:
 
