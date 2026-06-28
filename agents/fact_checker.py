@@ -100,7 +100,8 @@ class FactCheckerLlama(MnemoAgent):
                 f"Research findings:\n"
                 f"{context.get('research', 'No research provided.')}\n\n"
                 f"Written response to fact check:\n"
-                f"{context.get('writing', 'No written output provided.')}" // changed coz pipeline.py uses stage name
+                f"{context.get('writing', 'No written output provided.')}" 
+                # "written_output" changed to "writing" because pipeline.py uses stage name
             ))
         ]
         if context.get("memory"):
