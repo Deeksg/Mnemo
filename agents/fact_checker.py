@@ -100,7 +100,7 @@ class FactCheckerLlama(MnemoAgent):
                 f"Research findings:\n"
                 f"{context.get('research', 'No research provided.')}\n\n"
                 f"Written response to fact check:\n"
-                f"{context.get('written_output', 'No written output provided.')}"
+                f"{context.get('writing', 'No written output provided.')}" // changed coz pipeline.py uses stage name
             ))
         ]
         if context.get("memory"):
@@ -155,7 +155,7 @@ class FactCheckerGemini(MnemoAgent):
                 f"Research findings:\n"
                 f"{context.get('research', 'No research provided.')}\n\n"
                 f"Written response to fact check:\n"
-                f"{context.get('written_output', 'No written output provided.')}"
+                f"{context.get('writing', 'No written output provided.')}"
             ))
         ]
         if context.get("memory"):
@@ -212,7 +212,7 @@ class FactCheckerQwen(MnemoAgent):
                 f"Research findings:\n"
                 f"{context.get('research', 'No research provided.')}\n\n"
                 f"Written response to fact check:\n"
-                f"{context.get('written_output', 'No written output provided.')}"
+                f"{context.get('writing', 'No written output provided.')}"
             ))
         ]
         if context.get("memory"):
