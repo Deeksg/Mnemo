@@ -211,10 +211,18 @@ def main():
     - It's technical enough to show model differences
     """
 
-    task = (
-        "What are the implications of quantum computing "
-        "on modern cryptography and current encryption standards?"
-    )
+    print_separator("MNEMO — MULTI AGENT INTELLIGENCE SYSTEM")
+    print("\nWelcome to Mnemo.")
+    print("Three AI agents from Meta, Google, and Alibaba will")
+    print("compete on your task. The best output wins each stage.\n")
+
+    task = input("Enter your task: ").strip()
+
+    if not task:
+        print("\n❌ Task cannot be empty. Please provide a question or instruction.")
+        exit()
+
+    print(f"\n✅ Task received: {task}")
 
     # Run the pipeline
     # run_mnemo() returns the complete result dict

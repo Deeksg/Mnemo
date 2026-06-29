@@ -224,3 +224,4 @@ __pycache__/
 *.pyc
 .weaviate/
 notebooks/.ipynb_checkpoints/
+result.json
