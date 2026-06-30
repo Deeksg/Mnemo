@@ -25,6 +25,7 @@ from mnemo.core import MnemoCore
 from agents.researcher import ResearcherLlama, ResearcherGemini, ResearcherQwen
 from agents.writer import WriterLlama, WriterGemini, WriterQwen
 from agents.fact_checker import FactCheckerLlama, FactCheckerGemini, FactCheckerQwen
+from mnemo.logger import InteractionLogger
 
 
 def print_separator(title: str) -> None:
@@ -130,6 +131,9 @@ def run_mnemo(task: str) -> dict:
     # Low threshold because GNN is pre-trained.
     mnemo = MnemoCore(min_interactions=3)
 
+    # Create the logger — connects to (or creates) mnemo.db
+    logger = InteractionLogger()
+
     # ── STEP 2: Register Stages ───────────────────────────
     # This is exactly what a client would do with their agents.
     # We use our reference agents as the example.
@@ -193,6 +197,11 @@ def run_mnemo(task: str) -> dict:
     print(f"\nTask: {task}\n")
 
     result = mnemo.run(task)
+
+    # Permanently save this interaction to the database.
+    # Returns the id SQLite assigned to this row.
+    interaction_id = logger.log_interaction(result)
+    result["_db_id"] = interaction_id
 
     return result
 
