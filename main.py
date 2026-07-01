@@ -211,9 +211,47 @@ def run_mnemo(task: str) -> dict:
     interaction_id = logger.log_interaction(result)
     result["_db_id"] = interaction_id
 
+    # Print reputation standings after every run
+    print_reputation_summary(logger)
+
 
     return result
 
+
+def print_reputation_summary(logger) -> None:
+    """
+    Prints current reputation standings after each run.
+    Shows win rates and average scores per agent so you
+    can visually see reputation building over time.
+    """
+    print_separator("REPUTATION STANDINGS")
+
+    agents = [
+        "researcher-llama", "researcher-gemini", "researcher-qwen",
+        "writer-llama", "writer-gemini", "writer-qwen",
+        "fact-checker-llama", "fact-checker-gemini", "fact-checker-qwen"
+    ]
+
+    # Group by stage for readability
+    stages = {
+        "Research": ["researcher-llama", "researcher-gemini", "researcher-qwen"],
+        "Writing": ["writer-llama", "writer-gemini", "writer-qwen"],
+        "Fact Checking": ["fact-checker-llama", "fact-checker-gemini", "fact-checker-qwen"]
+    }
+
+    for stage_label, stage_agents in stages.items():
+        print(f"\n── {stage_label} ──")
+        for agent_name in stage_agents:
+            scores = logger.get_agent_average_scores(agent_name)
+            if scores["total_appearances"] == 0:
+                print(f"  {agent_name}: no data yet")
+            else:
+                print(
+                    f"  {agent_name}: "
+                    f"win rate {scores['win_rate']}% | "
+                    f"avg overall {scores['avg_overall']} | "
+                    f"appearances {scores['total_appearances']}"
+                )
 
 def main():
     """
