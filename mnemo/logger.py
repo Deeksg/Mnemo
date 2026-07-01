@@ -310,33 +310,7 @@ class InteractionLogger:
                     1 if agent_name == winner else 0
                 ))
                 
-        # ── INSERT INTO agent_scores — one row per agent ───
-        # Store EVERY agent's scores, not just the winner.
-        # This is what makes meaningful reputation calculation
-        # possible — we need to know how everyone performed,
-        # not just who came first.
-        for stage_name, stage_data in result.get("stages", {}).items():
-            evaluation = stage_data.get("evaluation", {})
-            winner = evaluation.get("winner", "")
-
-            for agent_name, scores in evaluation.get("scores", {}).items():
-                cursor.execute("""
-                    INSERT INTO agent_scores
-                    (interaction_id, stage_name, agent_name,
-                     quality_score, relevance_score,
-                     completeness_score, overall_score, won)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    interaction_id,
-                    stage_name,
-                    agent_name,
-                    scores.get("quality"),
-                    scores.get("relevance"),
-                    scores.get("completeness"),
-                    scores.get("overall"),
-                    1 if agent_name == winner else 0
-                ))
-
+        
         # Save everything permanently — the interactions row
         # AND all the stage_results rows, and all agent_scores rows at once
         connection.commit()
