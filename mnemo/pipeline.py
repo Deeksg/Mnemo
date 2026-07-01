@@ -86,6 +86,10 @@ class MnemoPipeline:
         # Each is a PipelineStage with name and agents
         self.stages = stages
 
+        # This must come before interaction_counts setup
+        # because _is_exploration_mode() reads self.min_interactions
+        self.min_interactions = min_interactions
+
         # Track how many times each agent has competed.
         # If a logger is provided, load counts from the database
         # so they persist across separate program runs.
