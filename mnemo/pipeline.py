@@ -78,22 +78,29 @@ class MnemoPipeline:
     def __init__(
         self,
         stages: list,
-        min_interactions: int = 3
+        min_interactions: int = 3,
+        logger=None  # NEW — optional logger to load counts from
+
     ):
         # The ordered list of stages
         # Each is a PipelineStage with name and agents
         self.stages = stages
 
-        # How many evaluations needed before routing kicks in
-        self.min_interactions = min_interactions
-
-        # Track interaction count per agent
-        # Key: agent name, Value: number of evaluations so far
-        # Starts at zero for every agent in every stage
+        # Track how many times each agent has competed.
+        # If a logger is provided, load counts from the database
+        # so they persist across separate program runs.
+        # Without this, counts would reset to 0 every time
+        # main.py is run, meaning exploration mode never ends.
         self.interaction_counts = {}
         for stage in self.stages:
             for agent in stage.agents:
-                self.interaction_counts[agent.name] = 0
+                if logger:
+                    self.interaction_counts[agent.name] = (
+                        logger.get_agent_appearance_count(agent.name)
+                    )
+                else:
+                    # No logger — start from zero (useful for testing)
+                    self.interaction_counts[agent.name] = 0
 
         # Single judge shared across all stages and all runs
         # Consistent evaluator = comparable reputation scores

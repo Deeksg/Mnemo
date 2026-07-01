@@ -224,4 +224,7 @@ __pycache__/
 *.pyc
 .weaviate/
 notebooks/.ipynb_checkpoints/
+
+#mnemo interaction logger results and database
 result.json
+mnemo.db

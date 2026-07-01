@@ -47,7 +47,7 @@ class MnemoCore:
         the specific agents in this deployment.
     """
 
-    def __init__(self, min_interactions: int = 3):
+    def __init__(self, min_interactions: int = 3, logger=None):
 
         # min_interactions controls exploration vs exploitation.
         # Stored here and passed to MnemoPipeline when built.
@@ -80,6 +80,10 @@ class MnemoCore:
         # Tracks whether the pipeline has been built yet.
         # False until run() is called for the first time.
         self._pipeline_built = False
+
+        # Store logger reference so it can be passed to
+        # MnemoPipeline when _build_pipeline() is called
+        self._logger = logger
 
     def register_stage(self, name: str, agents: list) -> None:
         """
@@ -268,7 +272,8 @@ class MnemoCore:
         # and the min_interactions threshold
         self._pipeline = MnemoPipeline(
             stages=pipeline_stages,
-            min_interactions=self.min_interactions
+            min_interactions=self.min_interactions,
+            logger=self._logger  # Pass logger to pipeline
         )
 
         self._pipeline_built = True

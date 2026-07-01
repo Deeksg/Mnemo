@@ -144,7 +144,34 @@ class InteractionLogger:
         # parse_error        — did the judge's JSON response fail
         #                      to parse, forcing neutral 5/10 scores?
 
-        # Save both table creations permanently to disk
+
+        # ── TABLE 3: agent_scores ──────────────────────────
+        # One row per AGENT per STAGE per interaction.
+        # Unlike stage_results which only records the winner,
+        # this table records EVERY agent's scores from every
+        # stage they competed in. This gives the GNN rich
+        # signal — an agent that consistently scores 8 but
+        # loses to a 9 is still valuable information.
+        # Also used to track how many times each agent has
+        # competed (total_appearances) for exploration mode.
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS agent_scores (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                interaction_id INTEGER NOT NULL,
+                stage_name TEXT NOT NULL,
+                agent_name TEXT NOT NULL,
+                quality_score INTEGER,
+                relevance_score INTEGER,
+                completeness_score INTEGER,
+                overall_score INTEGER,
+                won INTEGER,
+                FOREIGN KEY (interaction_id) REFERENCES interactions (id)
+            )
+        """)
+        # won — 1 if this agent won this stage, 0 if they lost
+        # Allows filtering wins without a separate table
+
+        # Save all 3 table creations permanently to disk
         connection.commit()
 
         # Close this connection — we open a fresh one for every
@@ -256,8 +283,62 @@ class InteractionLogger:
                 parse_error
             ))
 
-        # Save everything permanently — both the interactions row
-        # AND all the stage_results rows, all at once
+        # ── INSERT INTO agent_scores — one row per agent ───
+        # Store EVERY agent's scores, not just the winner.
+        # This is what makes meaningful reputation calculation
+        # possible — we need to know how everyone performed,
+        # not just who came first.
+        for stage_name, stage_data in result.get("stages", {}).items():
+            evaluation = stage_data.get("evaluation", {})
+            winner = evaluation.get("winner", "")
+
+            for agent_name, scores in evaluation.get("scores", {}).items():
+                cursor.execute("""
+                    INSERT INTO agent_scores
+                    (interaction_id, stage_name, agent_name,
+                     quality_score, relevance_score,
+                     completeness_score, overall_score, won)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    interaction_id,
+                    stage_name,
+                    agent_name,
+                    scores.get("quality"),
+                    scores.get("relevance"),
+                    scores.get("completeness"),
+                    scores.get("overall"),
+                    1 if agent_name == winner else 0
+                ))
+                
+        # ── INSERT INTO agent_scores — one row per agent ───
+        # Store EVERY agent's scores, not just the winner.
+        # This is what makes meaningful reputation calculation
+        # possible — we need to know how everyone performed,
+        # not just who came first.
+        for stage_name, stage_data in result.get("stages", {}).items():
+            evaluation = stage_data.get("evaluation", {})
+            winner = evaluation.get("winner", "")
+
+            for agent_name, scores in evaluation.get("scores", {}).items():
+                cursor.execute("""
+                    INSERT INTO agent_scores
+                    (interaction_id, stage_name, agent_name,
+                     quality_score, relevance_score,
+                     completeness_score, overall_score, won)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    interaction_id,
+                    stage_name,
+                    agent_name,
+                    scores.get("quality"),
+                    scores.get("relevance"),
+                    scores.get("completeness"),
+                    scores.get("overall"),
+                    1 if agent_name == winner else 0
+                ))
+
+        # Save everything permanently — the interactions row
+        # AND all the stage_results rows, and all agent_scores rows at once
         connection.commit()
         connection.close()
 
@@ -500,61 +581,6 @@ class InteractionLogger:
             for agent, wins in rows
         ]
 
-    def get_agent_average_scores(self, agent_name: str) -> dict:
-        """
-        Returns this agent's average scores across every stage
-        it has WON. A simple proxy reputation signal usable
-        right now, before the GNN exists in Phase 4.
-
-        Parameters
-        ----------
-        agent_name : str
-            e.g. "researcher-gemini"
-
-        Returns
-        -------
-        dict
-            {
-                "agent": "researcher-gemini",
-                "total_wins": 12,
-                "avg_quality": 8.3,
-                "avg_relevance": 8.7,
-                "avg_completeness": 7.9,
-                "avg_overall": 8.4
-            }
-        """
-
-        connection = sqlite3.connect(self.db_path)
-        cursor = connection.cursor()
-
-        # AVG() is a SQL function computing the average of a
-        # numeric column. COUNT(*) counts matching rows.
-        # WHERE winner_agent = ? filters to only rows where
-        # this specific agent was the winner of that stage.
-        cursor.execute("""
-            SELECT COUNT(*), AVG(quality_score), AVG(relevance_score),
-                   AVG(completeness_score), AVG(overall_score)
-            FROM stage_results
-            WHERE winner_agent = ?
-        """, (agent_name,))
-
-        row = cursor.fetchone()
-        connection.close()
-
-        total_wins, avg_quality, avg_relevance, avg_completeness, avg_overall = row
-
-        # round(x, 2) to 2 decimal places for readability.
-        # "if avg_quality else 0" handles the case where this
-        # agent has zero wins — AVG() on no rows returns None,
-        # which round() can't handle, so we default to 0 instead.
-        return {
-            "agent": agent_name,
-            "total_wins": total_wins or 0,
-            "avg_quality": round(avg_quality, 2) if avg_quality else 0,
-            "avg_relevance": round(avg_relevance, 2) if avg_relevance else 0,
-            "avg_completeness": round(avg_completeness, 2) if avg_completeness else 0,
-            "avg_overall": round(avg_overall, 2) if avg_overall else 0
-        }
 
     def count_interactions(self) -> int:
         """
@@ -577,3 +603,78 @@ class InteractionLogger:
         connection.close()
 
         return count
+
+    def get_agent_appearance_count(self, agent_name: str) -> int:
+        """
+        Returns how many times this agent has competed in any stage.
+        Used by the pipeline to track exploration vs exploitation.
+        Simple count of appearances — not wins, not scores.
+        An agent competes in every stage of every pipeline run,
+        so after 3 full runs every agent has 9 appearances
+        (3 stages x 3 runs).
+        """
+        connection = sqlite3.connect(self.db_path)
+        cursor = connection.cursor()
+
+        cursor.execute("""
+            SELECT COUNT(*) FROM agent_scores
+            WHERE agent_name = ?
+        """, (agent_name,))
+
+        count = cursor.fetchone()[0]
+        connection.close()
+        return count
+
+    def get_agent_average_scores(self, agent_name: str) -> dict:
+        """
+        Returns this agent's average scores across ALL competitions
+        — including stages they lost. This is a more honest
+        reputation signal than averaging only winning scores.
+
+        Returns
+        -------
+        dict:
+            {
+                "agent": "researcher-gemini",
+                "total_appearances": 9,
+                "total_wins": 3,
+                "win_rate": 33.3,
+                "avg_quality": 7.8,
+                "avg_relevance": 8.1,
+                "avg_completeness": 7.5,
+                "avg_overall": 7.8
+            }
+        """
+        connection = sqlite3.connect(self.db_path)
+        cursor = connection.cursor()
+
+        cursor.execute("""
+            SELECT COUNT(*) as total_appearances,
+                   SUM(won) as total_wins,
+                   AVG(quality_score) as avg_quality,
+                   AVG(relevance_score) as avg_relevance,
+                   AVG(completeness_score) as avg_completeness,
+                   AVG(overall_score) as avg_overall
+            FROM agent_scores
+            WHERE agent_name = ?
+        """, (agent_name,))
+
+        row = cursor.fetchone()
+        connection.close()
+
+        total_appearances, total_wins, avg_quality, avg_relevance, avg_completeness, avg_overall = row
+
+        win_rate = 0.0
+        if total_appearances:
+            win_rate = round((total_wins / total_appearances) * 100, 1)
+
+        return {
+            "agent": agent_name,
+            "total_appearances": total_appearances or 0,
+            "total_wins": int(total_wins) if total_wins else 0,
+            "win_rate": win_rate,
+            "avg_quality": round(avg_quality, 2) if avg_quality else 0,
+            "avg_relevance": round(avg_relevance, 2) if avg_relevance else 0,
+            "avg_completeness": round(avg_completeness, 2) if avg_completeness else 0,
+            "avg_overall": round(avg_overall, 2) if avg_overall else 0
+        }

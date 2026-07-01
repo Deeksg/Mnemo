@@ -122,6 +122,11 @@ def run_mnemo(task: str) -> dict:
     dict
         Complete pipeline result from MnemoCore.run()
     """
+    # Logger created first so it can be passed into MnemoCore
+    # MnemoCore passes it to MnemoPipeline which uses it to
+    # load persistent interaction counts from the database
+    logger = InteractionLogger()
+    mnemo = MnemoCore(min_interactions=3, logger=logger)
 
     # ── STEP 1: Create MnemoCore ──────────────────────────
     # MnemoCore is the front door of Mnemo.
@@ -129,11 +134,14 @@ def run_mnemo(task: str) -> dict:
     # until every agent has been evaluated 3 times.
     # After that the router takes over.
     # Low threshold because GNN is pre-trained.
-    mnemo = MnemoCore(min_interactions=3)
-
+    # Logger created first so it can be passed into MnemoCore
+    # MnemoCore passes it to MnemoPipeline which uses it to
+    # load persistent interaction counts from the database
     # Create the logger — connects to (or creates) mnemo.db
     logger = InteractionLogger()
+    mnemo = MnemoCore(min_interactions=3, logger=logger)    
 
+    
     # ── STEP 2: Register Stages ───────────────────────────
     # This is exactly what a client would do with their agents.
     # We use our reference agents as the example.
@@ -202,6 +210,7 @@ def run_mnemo(task: str) -> dict:
     # Returns the id SQLite assigned to this row.
     interaction_id = logger.log_interaction(result)
     result["_db_id"] = interaction_id
+
 
     return result
 
