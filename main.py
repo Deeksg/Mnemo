@@ -122,11 +122,7 @@ def run_mnemo(task: str) -> dict:
     dict
         Complete pipeline result from MnemoCore.run()
     """
-    # Logger created first so it can be passed into MnemoCore
-    # MnemoCore passes it to MnemoPipeline which uses it to
-    # load persistent interaction counts from the database
-    logger = InteractionLogger()
-    mnemo = MnemoCore(min_interactions=3, logger=logger)
+   
 
     # ── STEP 1: Create MnemoCore ──────────────────────────
     # MnemoCore is the front door of Mnemo.
